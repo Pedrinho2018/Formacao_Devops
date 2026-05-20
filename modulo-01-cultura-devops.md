@@ -109,3 +109,10 @@ ANTES (Silos)                     DEPOIS (DevOps)
 ---
 
 *Documentação mantida por: `@seu-usuario` | Última atualização: 2026*
+
+---
+
+## Navegação
+
+> **Início ←** [README](./README.md)
+> **Próximo módulo →** [Módulo 02 · CALMS e as Três Maneiras](./modulo-02-calms-e-as-tres-maneiras.md)

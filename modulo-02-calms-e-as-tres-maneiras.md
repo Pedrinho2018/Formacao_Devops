@@ -33,7 +33,7 @@ O **CALMS** é um framework para diagnosticar e evoluir a adoção da cultura De
 
 ### C — Culture
 
-Abordado em detalhes no [Módulo 01](../modulo-01-cultura-devops/). A cultura é a base de tudo — sem ela, ferramentas e processos não sustentam uma transformação real.
+Abordado em detalhes no [Módulo 01](./modulo-01-cultura-devops.md). A cultura é a base de tudo — sem ela, ferramentas e processos não sustentam uma transformação real.
 
 ---
 
@@ -119,7 +119,7 @@ Sem mensuração, a melhoria contínua é impossível — não há como otimizar
 
 ### S — Sharing
 
-Diretamente ligado ao antipadrão da **Síndrome da Pessoa Herói** (Módulo 01).
+Diretamente ligado ao antipadrão da **Síndrome da Pessoa Herói** ([Módulo 01](./modulo-01-cultura-devops.md)).
 
 O que deve ser compartilhado ativamente:
 
@@ -179,5 +179,5 @@ O estágio mais maduro. A cultura de aprendizado organizacional está consolidad
 
 ---
 
-> **Módulo anterior ←** [Módulo 01 · Cultura DevOps](../modulo-01-cultura-devops/)
-> **Próximo módulo →** Módulo 03 · Containers e Docker
+> **Módulo anterior ←** [Módulo 01 · Cultura DevOps](./modulo-01-cultura-devops.md)
+> **Voltar ao início →** [README](./README.md)
