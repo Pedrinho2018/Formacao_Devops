@@ -108,13 +108,4 @@ ANTES (Silos)                     DEPOIS (DevOps)
 
 ---
 
-## 📚 Referências e Próximos Passos
-
-- [ ] Módulo 02 — CI/CD na prática
-- [ ] Módulo 03 — Infraestrutura como Código (IaC)
-- [ ] Módulo 04 — Observabilidade e Monitoramento
-- [ ] Módulo 05 — SRE na prática
-
----
-
 *Documentação mantida por: `@seu-usuario` | Última atualização: 2026*
