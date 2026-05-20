@@ -1,0 +1,226 @@
+# Módulo 02 — CALMS e as Três Maneiras
+
+> *"CALMS não é um checklist — é um diagnóstico contínuo da sua cultura DevOps."*
+
+---
+
+## 📌 O que é o Framework CALMS?
+
+**CALMS** é um framework criado para guiar a **adoção e o diagnóstico da cultura DevOps** dentro de uma organização. Cada letra representa um pilar fundamental:
+
+| Letra | Significado | Foco |
+|---|---|---|
+| **C** | Culture (Cultura) | Colaboração e mentalidade entre times |
+| **A** | Automation (Automação) | Eliminar processos manuais e repetitivos |
+| **L** | Lean | Entregar valor rápido com o mínimo de desperdício |
+| **M** | Measurement (Mensuração) | Métricas técnicas e negociais |
+| **S** | Sharing (Compartilhamento) | Descentralização do conhecimento |
+
+> 💡 **Como usar o CALMS?** Faça perguntas diagnósticas para cada pilar: *"Hoje, como estamos nesse aspecto?"* A partir do diagnóstico, você implementa e evolui gradualmente.
+
+---
+
+## ⚙️ A — Automação
+
+### Tudo que pode ser automatizado, deve ser automatizado
+
+Automação é o coração operacional do DevOps. O olhar deve ser contínuo: observe os processos do seu time e identifique candidatos à automação.
+
+**Sinais de que algo deve ser automatizado:**
+- É executado de forma repetitiva e regular
+- Consome tempo considerável mesmo que "só 10 minutos"
+- Pode gerar inconsistências se feito manualmente
+- Bloqueia a escalabilidade do time
+
+### Entrega Contínua (CI/CD)
+
+Todo o fluxo de publicação de uma aplicação deve ser automatizado:
+
+```
+Código → Instalação de Dependências → Testes → Build → Deploy
+```
+
+Sem automação nesse fluxo, o time perde velocidade, qualidade e frequência de entrega. Se os testes são manuais e exaustivos antes de cada publicação, isso é um **gargalo** — e indica distanciamento da cultura DevOps.
+
+> 🔎 *Módulos específicos sobre CI/CD serão abordados adiante.*
+
+### IaC e GitOps — Fonte Única de Verdade
+
+**Problema comum:** alguém acessa o console da AWS e cria um recurso manualmente. Resultado? Ninguém mais sabe o que existe, recursos duplicados aparecem, e não há rastreabilidade.
+
+**Solução: GitOps + IaC**
+
+- Toda infraestrutura (filas SQS, clusters Kubernetes, containers, registries) fica **versionada no Git**
+- O console da AWS/Azure/GCP passa a ser **somente leitura (read-only)**
+- Qualquer mudança nos recursos **obrigatoriamente passa pelo código**, com code review e rastreabilidade
+- Resultado: economia financeira, manutenibilidade e visibilidade total da infraestrutura
+
+```
+Git (fonte da verdade) → Pipeline → Cloud (espelho do código)
+```
+
+> 🔎 *Um módulo exclusivo sobre IaC e GitOps será abordado adiante.*
+
+---
+
+## 🏃 L — Lean (Foco no Valor, Errar Rápido)
+
+### O que é Lean no contexto DevOps?
+
+Lean é o pilar que orienta o time a **focar no que gera valor real** e evitar desperdício de tempo e energia em entregas de baixo impacto ou alta complexidade desnecessária.
+
+> ❌ Pior cenário: alta complexidade + baixo valor  
+> ✅ Ideal: menor esforço possível para validar e entregar o máximo de valor
+
+### MVP — Mínimo Produto Viável
+
+A mentalidade Lean se aplica a produtos, features e histórias. A lógica é sempre:
+
+1. Identifique o **núcleo** da sua ideia (o que é essencial)
+2. Entregue o **mínimo viável** desse núcleo
+3. Colete feedbacks reais
+4. **Itere** — evolua ou descontinue com base nos dados
+
+> Mesmo com pesquisa prévia, qualquer ideia tem um grau de incerteza. Só o mercado real confirma a aderência.
+
+### Mentalidade Experimental
+
+- Trate cada entrega como um **experimento**
+- Valide hipóteses técnicas e de negócio rapidamente
+- Não espere ter a solução "perfeita" para lançar
+
+### Errar Rápido para Corrigir Rápido (*Fail Fast, Fix Fast*)
+
+| Abordagem | Consequência |
+|---|---|
+| Entrega grande e demorada | Erros descobertos tarde, difíceis de diagnosticar e corrigir |
+| Pequenas entregas frequentes | Erros descobertos cedo, fáceis de isolar e corrigir |
+
+**Importante:** o erro deve ser descoberto **pelo time**, não pelo cliente. Para isso, o time precisa de:
+- Observabilidade da aplicação em produção
+- Testes automatizados (ex: *Smoke Tests*)
+- Capacidade de rollback rápido em caso de erro crítico
+
+> 🔎 *Observabilidade e tipos de testes serão aprofundados em módulos específicos.*
+
+---
+
+## 📊 M — Mensuração (Measurement)
+
+### Por que medir?
+
+Para melhorar continuamente, você precisa de **dados reais**. Métricas são os inputs que alimentam decisões — tanto técnicas quanto de negócio.
+
+### Métricas de Negócio
+- Quantos usuários acessaram o site no último mês?
+- Quantos interagiram com a nova feature lançada?
+- Qual parte da interface tem mais engajamento? *(mapas de calor, cliques, conversões)*
+
+Essas métricas permitem direcionar campanhas, priorizar funcionalidades e até descontinuar o que não gera valor.
+
+### Métricas Técnicas (Observabilidade)
+- Latência de endpoints críticos
+- Taxa de erros em produção
+- Disponibilidade e uptime dos serviços
+
+> ✅ **Boa prática:** erros críticos devem ser detectados **internamente**, antes que qualquer cliente os reporte.
+
+A mensuração é o que torna a **melhoria contínua** possível — sem dados, as decisões são achismos.
+
+---
+
+## 🤝 S — Sharing (Compartilhamento de Conhecimento)
+
+Este pilar é diretamente ligado ao antipadrão discutido no Módulo 01: a **Síndrome da Pessoa Herói**.
+
+### O que deve ser compartilhado?
+
+- Aprendizados de incidentes e postmortems
+- Tecnologias novas implementadas (o que funcionou e o que não funcionou)
+- Documentação de fluxos, arquiteturas e decisões técnicas
+- Processos de deploy, on-call e resposta a incidentes
+
+### Por que compartilhar?
+
+- Time mais autônomo e produtivo
+- Elimina gargalos humanos
+- Mantém todos na **mesma página**
+- Cria um ciclo saudável de aprendizado contínuo
+- Libera as pessoas para aprender coisas novas ao invés de ficar presas em processos
+
+> 💡 O compartilhamento de conhecimento não é um evento pontual — é uma **prática cultural contínua**.
+
+---
+
+## 🗺️ As Três Maneiras
+
+> *Originadas no livro **O Projeto Phoenix**, dos mesmos autores do Manual de DevOps.*
+
+As Três Maneiras complementam o CALMS: enquanto o CALMS serve para **diagnosticar** o estágio atual, as Três Maneiras servem para **guiar a implementação** e o acompanhamento contínuo da cultura DevOps.
+
+```
+CALMS  →  Diagnóstico: "Como estamos hoje?"
+3 Maneiras  →  Implementação: "Como chegamos lá?"
+```
+
+---
+
+### 1ª Maneira — Acelerar o Fluxo *(Dev → Ops)*
+
+Foco em estabelecer fluxos de trabalho mais rápidos e eficientes entre Desenvolvimento e Operações.
+
+**Práticas-chave:**
+- **Visibilidade total** do ciclo de vida da aplicação — do código ao deploy em produção
+- **Eliminar tarefas de baixo valor e alta complexidade**
+- **Evitar a criação de pessoas heróis** — o conhecimento deve ser coletivo
+- **Otimizações constantes** baseadas em métricas (ex: endpoint lento = métrica que detecta + time que age)
+- **Deploys frequentes** para ciclos de feedback curtos
+- **Automação** de tudo que for repetitivo
+
+---
+
+### 2ª Maneira — Amplificar o Feedback *(Ops → Dev)*
+
+Foco em estabelecer feedback contínuo em todas as direções do fluxo.
+
+```
+Dev ←→ Ops  (feedback bidirecional e constante)
+```
+
+**Práticas-chave:**
+- Comunicação constante entre times
+- **Detecção rápida de erros** para recuperação mais ágil
+- **Incorporação de conhecimento** — aprender com cada incidente e entrega
+- Loops de feedback que permitem corrigir o curso rapidamente
+
+---
+
+### 3ª Maneira — Experimentação e Aprendizado Contínuos
+
+Foco em consolidar uma **cultura de aprendizado organizacional** — o estágio mais maduro do DevOps.
+
+**Práticas-chave:**
+- Incentivar **experimentos constantes** — técnicos e de negócio
+- **Aprendizado contínuo** como valor cultural do time
+- Transformar **problemas locais em melhorias globais** (ex: uma correção de segurança em uma app pode e deve ser replicada em todo o parque)
+- Manter o time evoluindo coletivamente, sem centralização de conhecimento
+
+> Uma organização que chegou à 3ª Maneira está, de fato, operando dentro da cultura DevOps.
+
+---
+
+## 🗺️ Resumo Visual — CALMS + As Três Maneiras
+
+```
+CALMS (Diagnóstico)               AS TRÊS MANEIRAS (Implementação)
+──────────────────────────────    ──────────────────────────────────────
+C → Cultura e colaboração         1ª → Acelerar fluxo Dev → Ops
+A → Automação de processos        2ª → Amplificar feedback Ops → Dev
+L → Lean e foco em valor          3ª → Experimentação e aprendizado
+M → Mensuração e observabilidade        contínuos
+S → Sharing e descentralização
+```
+
+
+---
+ *Última atualização: 2026*
