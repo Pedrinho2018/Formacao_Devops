@@ -1,116 +1,107 @@
-# Módulo 03 — Entendendo sobre Estado no Terraform
+# 🧠 Módulo 03 — Terraform State explicado
 
-> Material de estudo sobre **Terraform State**, estado local, estado remoto, backup, backend S3, versionamento, `destroy`, `.gitignore` e `tfvars`.
+> Guia direto sobre **estado no Terraform**: `terraform.tfstate`, backup, state local/remoto, backend S3, versionamento, `destroy`, `.gitignore` e `tfvars`.
 
 ---
 
-## TL;DR
+## ⚡ TL;DR
 
-O **estado** é o arquivo que o Terraform usa para saber **o que existe na infraestrutura** e **o que precisa mudar**.
-
-Sem o estado, o Terraform fica “cego”.
+O **Terraform State** é o “mapa” que o Terraform usa para saber o que existe na sua infraestrutura.
 
 Ele compara:
 
 ```text
-Código .tf  +  terraform.tfstate  +  infraestrutura real na cloud
+Código .tf  +  terraform.tfstate  +  AWS real
 ```
 
 E decide se precisa:
 
 ```text
-criar → alterar → deletar → não fazer nada
+criar ✅ | alterar 🔄 | destruir 🗑️ | não fazer nada 👍
 ```
+
+Sem o state, o Terraform fica praticamente **cego**.
 
 ---
 
-# 1. O que é o Terraform State?
+# 1. 🗺️ O que é o Terraform State?
 
-O **Terraform State** é o controle interno do Terraform.
-
-Ele normalmente aparece como:
+O Terraform State normalmente fica em um arquivo chamado:
 
 ```text
 terraform.tfstate
 ```
 
-Esse arquivo guarda informações dos recursos criados, como:
+Esse arquivo guarda informações reais dos recursos criados, como:
+
+- nome do recurso;
+- ID;
+- ARN;
+- região;
+- tags;
+- provider usado;
+- módulo de origem;
+- dados gerados pela AWS.
+
+Exemplo simples:
 
 ```text
-nome do bucket
-ARN
-região
-ID do recurso
-domain name
-tags
-provider usado
-módulo de origem
+Você escreve no código:
+"Quero um bucket S3 chamado empresa-state"
+
+A AWS cria:
+bucket real no S3
+
+O Terraform salva no state:
+"Esse bucket existe e eu gerencio ele"
 ```
 
-Exemplo mental:
-
-```text
-Código Terraform:
-"quero um bucket S3 chamado empresa-state"
-
-AWS:
-bucket criado de verdade
-
-terraform.tfstate:
-registro dizendo que esse bucket existe e pertence ao Terraform
-```
+👉 **Resumo direto:**
+O state é o controle interno do Terraform sobre a infraestrutura.
 
 ---
 
-# 2. Por que o estado é tão importante?
+# 2. 🤔 Por que o state é importante?
 
-Porque o Terraform precisa saber se um recurso:
+Porque o Terraform precisa responder:
 
 ```text
-já existe
-não existe
-foi alterado
-precisa ser recriado
-precisa ser destruído
+Esse recurso já existe?
+Foi alterado?
+Precisa mudar?
+Precisa ser recriado?
+Precisa ser apagado?
 ```
 
 Exemplo:
-
-Você cria um bucket S3 via Terraform.
-
-Depois roda:
 
 ```bash
 terraform plan
 ```
 
-Se nada mudou, ele responde algo parecido com:
+Se nada mudou, ele mostra algo parecido com:
 
 ```text
 No changes.
 ```
 
-Agora, se você alterar alguma coisa no código, por exemplo uma tag, o Terraform compara o código com o estado e mostra o que será alterado.
+Mas se você alterou uma tag no código, ele percebe e mostra o que será mudado.
 
 ---
 
-# 3. O estado é a fonte da verdade?
+# 3. 🎯 Quem é a fonte da verdade?
 
-Na prática, sim.
-
-O Terraform trabalha comparando:
+No Terraform, a fonte da verdade deve ser:
 
 ```text
-código declarativo
-estado salvo
-infraestrutura real no provider
+Código Terraform + State
 ```
 
-Se alguém altera um recurso direto no console da AWS, sem passar pelo Terraform, acontece uma **dissonância de estado**.
+Não o console da AWS.
 
-## Exemplo
+## Exemplo de problema
 
-No código existe:
+No código está assim:
 
 ```hcl
 tags = {
@@ -118,55 +109,62 @@ tags = {
 }
 ```
 
-Mas alguém entra na AWS e adiciona manualmente:
+Aí alguém entra manualmente na AWS e adiciona:
 
 ```text
 teste = true
 ```
 
-Quando rodar:
+Quando você roda:
 
 ```bash
 terraform plan
 ```
 
-O Terraform percebe que existe algo fora do código e tenta voltar para o que está declarado.
+O Terraform percebe que a AWS está diferente do código.
 
-Ou seja:
+Ele tenta corrigir para ficar igual ao que está declarado no `.tf`.
+
+✅ Certo:
 
 ```text
-O console da AWS não deve ser o lugar principal de alteração.
-O repositório Terraform deve ser a fonte principal.
+Alterar o arquivo .tf
+Rodar terraform plan
+Rodar terraform apply
+```
+
+❌ Errado:
+
+```text
+Alterar direto no console da AWS
 ```
 
 ---
 
-# 4. Quando o estado é alterado?
+# 4. 🔄 Quando o state muda?
 
-O estado é alterado quando o Terraform aplica uma mudança com sucesso usando:
+O state só muda quando o comando abaixo termina com sucesso:
 
 ```bash
 terraform apply
 ```
 
-O `plan` não altera o estado. Ele só simula e mostra o que será feito.
-
-```bash
-terraform plan
-```
+O `plan` **não altera nada**.
 
 Pense assim:
 
-```text
-terraform plan  = prévia
-terraform apply = execução real
-```
+| Comando                  | O que faz                  |
+| ------------------------ | -------------------------- |
+| `terraform plan`       | Mostra uma prévia         |
+| `terraform apply`      | Aplica de verdade          |
+| `terraform destroy`    | Remove recursos            |
+| `terraform state list` | Lista o que está no state |
 
 ---
 
-# 5. Estado local
+# 5. 💻 State local
 
-Por padrão, o Terraform cria o estado localmente.
+Por padrão, o Terraform salva o state na sua máquina.
 
 Exemplo:
 
@@ -178,116 +176,94 @@ projeto-iac/
 └── terraform.tfstate.backup
 ```
 
-Quando usa workspace, pode aparecer assim:
+Com workspace, pode aparecer assim:
 
 ```text
 terraform.tfstate.d/
 └── staging/
-    ├── terraform.tfstate
-    └── terraform.tfstate.backup
+    └── terraform.tfstate
 ```
 
-## Problema do estado local
+## ⚠️ Problemas do state local
 
-O estado local é ruim para trabalho em equipe.
+State local é ok para estudo, mas ruim para projeto real.
 
-Porque:
+Problemas:
 
-```text
-fica preso na sua máquina
-pode ser perdido
-pode gerar conflito
-não funciona bem em pipeline
-pode conter informação sensível
-não deve ir para o GitHub
-```
+- fica preso na sua máquina;
+- pode ser perdido;
+- pode gerar conflito em equipe;
+- não funciona bem com pipeline;
+- pode conter dados sensíveis;
+- não deve ir para o GitHub.
+
+👉 Em projeto real, use **state remoto**.
 
 ---
 
-# 6. Arquivo `terraform.tfstate.backup`
+# 6. 🧯 O que é `terraform.tfstate.backup`?
 
-O backup é uma cópia da versão anterior do estado.
-
-Exemplo:
+É a versão anterior do state.
 
 ```text
 terraform.tfstate        → estado atual
 terraform.tfstate.backup → estado anterior
 ```
 
-Se você aplica uma mudança, o Terraform atualiza o `terraform.tfstate` e guarda a versão antiga no backup.
-
-## Para que serve?
-
-Serve como segurança caso o estado atual seja corrompido ou dê algum problema.
-
-Exemplo mental:
+Exemplo:
 
 ```text
 Antes:
-estado tinha 1 bucket
+state tinha 1 bucket
 
 Depois do apply:
-estado atual tem 2 buckets
+state atual tem 2 buckets
 backup ainda guarda a versão com 1 bucket
 ```
 
+Ele serve como uma segurança caso o state atual dê problema.
+
 ---
 
-# 7. Comandos para olhar o estado
+# 7. 🔎 Comandos úteis para state
 
-O Terraform tem comandos específicos para estado.
-
-## Listar recursos no estado
+## Listar recursos conhecidos pelo Terraform
 
 ```bash
 terraform state list
 ```
 
-Mostra os recursos que o Terraform conhece.
-
-Exemplo:
+Exemplo de saída:
 
 ```text
 module.s3.aws_s3_bucket.bucket
 module.cloudfront.aws_cloudfront_distribution.cloudfront
 ```
 
-## Mostrar detalhes de um recurso
+## Ver detalhes de um recurso
 
 ```bash
 terraform state show module.s3.aws_s3_bucket.bucket
 ```
 
-Mostra os atributos daquele recurso no estado.
+## Comandos avançados
 
-## Outros comandos avançados
+| Comando                  | Função                     |
+| ------------------------ | ---------------------------- |
+| `terraform state list` | Lista recursos no state      |
+| `terraform state show` | Mostra detalhes              |
+| `terraform state mv`   | Move recurso dentro do state |
+| `terraform state rm`   | Remove recurso do state      |
+| `terraform state pull` | Baixa o state                |
+| `terraform state push` | Envia state manualmente      |
 
-```bash
-terraform state mv
-terraform state pull
-terraform state push
-terraform state rm
-```
-
-Uso rápido:
-
-| Comando | Função |
-|---|---|
-| `state list` | Lista recursos no estado |
-| `state show` | Mostra detalhes de um recurso |
-| `state mv` | Move recurso dentro do estado |
-| `state pull` | Baixa estado atual |
-| `state push` | Envia estado manualmente |
-| `state rm` | Remove recurso do estado |
-
-Atenção: mexer manualmente no estado é avançado. Use com cuidado.
+⚠️ Cuidado: mexer manualmente no state é avançado.
 
 ---
 
-# 8. Estado remoto
+# 8. ☁️ State remoto
 
-A boa prática é guardar o estado remotamente.
+A boa prática é guardar o state remotamente.
 
 No módulo, o exemplo usa:
 
@@ -295,23 +271,21 @@ No módulo, o exemplo usa:
 AWS S3 como backend remoto
 ```
 
-Assim, o estado deixa de ficar só na máquina local e passa a ficar em um bucket S3.
+Ou seja, o arquivo `terraform.tfstate` passa a ficar em um bucket S3.
 
 ## Vantagens
 
-```text
-melhor para equipe
-melhor para pipeline CI/CD
-mais seguro
-mais fácil de versionar
-menos dependência da máquina local
-```
+- melhor para equipe;
+- melhor para CI/CD;
+- menos risco de perder o state;
+- mais fácil de controlar versões;
+- menos dependência da máquina local.
 
 ---
 
-# 9. Criando um bucket para o estado
+# 9. 🪣 Criando bucket para guardar o state
 
-Exemplo de recurso para criar o bucket do estado:
+Exemplo:
 
 ```hcl
 resource "aws_s3_bucket" "terraform_state" {
@@ -333,17 +307,14 @@ lifecycle {
 }
 ```
 
-Isso impede que o Terraform destrua esse bucket acidentalmente.
+Isso impede que o Terraform apague esse bucket sem querer.
 
-Por quê?
-
-Porque esse bucket guarda o estado.
-
-Se ele for apagado, você pode perder o controle da infraestrutura.
+👉 Faz sentido porque esse bucket guarda o state.
+Se apagar ele, você pode perder o controle da infraestrutura.
 
 ---
 
-# 10. Variável para o bucket de estado
+# 10. 🧩 Variável para o bucket do state
 
 Arquivo:
 
@@ -356,8 +327,8 @@ Exemplo:
 ```hcl
 variable "state_bucket" {
   type        = string
-  default     = "rocketseat-state-bucket-tf"
-  description = "Bucket com o estado remoto do Terraform"
+  default     = "empresa-state-bucket-tf"
+  description = "Bucket usado para guardar o state remoto"
 }
 ```
 
@@ -369,21 +340,14 @@ bucket = var.state_bucket
 
 ---
 
-# 11. Configurando backend remoto com S3
+# 11. 🔗 Configurando backend S3
 
-No bloco `terraform`, você configura o backend:
+No bloco `terraform`, você configura onde o state vai ficar:
 
 ```hcl
 terraform {
-  required_providers {
-    aws = {
-      source  = "hashicorp/aws"
-      version = "~> 5.0"
-    }
-  }
-
   backend "s3" {
-    bucket  = "rocketseat-state-bucket-tf"
+    bucket  = "empresa-state-bucket-tf"
     key     = "terraform.tfstate"
     region  = "us-east-2"
     encrypt = true
@@ -391,48 +355,47 @@ terraform {
 }
 ```
 
-## Explicando cada campo
+## Explicando
 
-| Campo | Função |
-|---|---|
-| `bucket` | Nome do bucket S3 onde o state ficará |
-| `key` | Caminho/nome do arquivo do estado |
-| `region` | Região da AWS |
-| `encrypt` | Criptografa o arquivo no S3 |
+| Campo       | Significado                   |
+| ----------- | ----------------------------- |
+| `bucket`  | Bucket onde o state fica      |
+| `key`     | Nome/caminho do arquivo state |
+| `region`  | Região da AWS                |
+| `encrypt` | Criptografa o state no S3     |
 
-Importante: no bloco `backend`, normalmente você não usa variável diretamente. Por isso o nome do bucket costuma ficar fixo nessa configuração.
+⚠️ No `backend`, normalmente você não usa `var.` direto.
+Por isso o nome do bucket costuma ficar fixo ali.
 
 ---
 
-# 12. Depois de configurar o backend
+# 12. 🚀 Migrando do state local para remoto
 
-Sempre que mexer no backend, rode:
+Depois de configurar o backend, rode:
 
 ```bash
 terraform init
 ```
 
-O Terraform vai perceber que você saiu do backend local para o backend remoto.
-
-Ele pode perguntar algo como:
+O Terraform pode perguntar:
 
 ```text
 Do you want to copy existing state to the new backend?
 ```
 
-Resposta comum:
+Responda:
 
 ```text
 yes
 ```
 
-Isso migra o estado local para o S3.
+Isso copia o state local para o bucket S3.
 
 ---
 
-# 13. Como fica o estado remoto com workspace?
+# 13. 🧱 State remoto com workspace
 
-Se você usa workspace, o Terraform organiza o state no bucket considerando o ambiente.
+Se você usa workspaces, o Terraform separa os states.
 
 Exemplo:
 
@@ -442,13 +405,19 @@ env:/
     └── terraform.tfstate
 ```
 
-Então, se você usa o workspace `staging`, o estado desse ambiente fica separado.
+Então cada ambiente pode ter seu próprio state:
+
+```text
+default
+staging
+production
+```
 
 ---
 
-# 14. Versionamento do bucket de estado
+# 14. 🕓 Versionamento do bucket
 
-Como o estado é sensível e muito importante, é boa prática ativar versionamento no bucket.
+Como o state é crítico, ative versionamento no bucket S3.
 
 Exemplo:
 
@@ -466,19 +435,17 @@ resource "aws_s3_bucket_versioning" "terraform_state" {
 }
 ```
 
-## Por que ativar versionamento?
+## Por que isso é importante?
 
-Porque cada alteração no arquivo `terraform.tfstate` gera uma versão.
+Porque cada alteração no `terraform.tfstate` gera uma nova versão.
 
-Se algo der ruim, você consegue voltar uma versão anterior no S3.
+Se der problema, você pode recuperar uma versão anterior no S3.
 
 ---
 
-# 15. `depends_on`
+# 15. 🔗 `depends_on`
 
-O `depends_on` força uma ordem de criação.
-
-Exemplo:
+`depends_on` força ordem de criação.
 
 ```hcl
 depends_on = [
@@ -489,18 +456,16 @@ depends_on = [
 Tradução:
 
 ```text
-Só configure o versionamento depois que o bucket existir.
+Só ative o versionamento depois que o bucket existir.
 ```
-
-Isso evita erro de dependência.
 
 ---
 
-# 16. Destroy no Terraform
+# 16. 🗑️ Destroy no Terraform
 
-O comando de destruição remove recursos da infraestrutura.
+O comando `destroy` remove recursos.
 
-Existem duas formas principais:
+Formas comuns:
 
 ```bash
 terraform destroy
@@ -512,17 +477,17 @@ ou:
 terraform apply -destroy
 ```
 
-Antes de destruir, o ideal é sempre rodar:
+Antes, sempre rode:
 
 ```bash
 terraform plan -destroy
 ```
 
-Assim você vê o que será apagado antes.
+Assim você vê o que será apagado.
 
 ---
 
-# 17. Cuidado: `destroy` apaga tudo do escopo
+# 17. ⚠️ Cuidado: destroy pode apagar tudo
 
 Se você rodar:
 
@@ -530,9 +495,9 @@ Se você rodar:
 terraform destroy
 ```
 
-O Terraform tenta destruir tudo que está naquele estado.
+O Terraform tenta apagar tudo que está naquele state.
 
-Então, se o repositório tem:
+Exemplo:
 
 ```text
 S3
@@ -543,15 +508,15 @@ IAM
 VPC
 ```
 
-Ele vai tentar apagar tudo.
+Tudo pode entrar no plano de destruição.
 
-Por isso, muito cuidado.
+👉 Por isso: **nunca rode destroy sem revisar o plan.**
 
 ---
 
-# 18. Destroy com `target`
+# 18. 🎯 Destroy com target
 
-Se você quer destruir só um recurso específico, use `--target`.
+Para destruir só um recurso específico, use `--target`.
 
 Exemplo:
 
@@ -571,60 +536,57 @@ Ou:
 terraform apply -destroy --target=module.s3.aws_s3_bucket.bucket
 ```
 
-## O que o `target` faz?
+## Atenção
 
-Ele limita o escopo da operação.
+Mesmo usando `target`, se outro recurso depender dele, o Terraform pode afetar recursos relacionados.
 
-Em vez de destruir tudo, ele tenta destruir só o recurso indicado.
+Exemplo:
 
-Mesmo assim, atenção: se outro recurso depende dele, o Terraform pode precisar alterar ou destruir recursos relacionados.
+```text
+CloudFront depende do S3.
+Se apagar o S3, o CloudFront pode precisar mudar também.
+```
 
 ---
 
-# 19. `.gitignore` para Terraform
+# 19. 🚫 `.gitignore` para Terraform
 
-O estado não deve ser enviado para o GitHub.
-
-Crie um `.gitignore`:
+Crie um `.gitignore` para não mandar arquivos errados para o Git.
 
 ```gitignore
-# Terraform local files
+# Terraform
 .terraform/*
 *.tfstate
 *.tfstate.*
 
-# Terraform variables
+# Variáveis locais
 *.tfvars
 
-# Crash logs
+# Logs
 crash.log
 crash.*.log
 
-# Override files
+# Overrides
 override.tf
 override.tf.json
 *_override.tf
 *_override.tf.json
 ```
 
-## Por que ignorar `tfstate`?
+## Não envie `tfstate`
 
-Porque pode conter:
+Porque ele pode conter:
 
-```text
-IDs internos
-nomes de recursos
-informações sensíveis
-estrutura real da infra
-outputs
-dados de providers
-```
+- IDs internos;
+- nomes de recursos;
+- estrutura real da infra;
+- outputs;
+- informações sensíveis.
 
-## Por que ignorar `.terraform/`?
+## Não envie `.terraform/`
 
-Porque é pasta local de inicialização/cache/plugin.
-
-Ela pode ser reconstruída com:
+Porque é cache local.
+Dá para reconstruir com:
 
 ```bash
 terraform init
@@ -632,132 +594,104 @@ terraform init
 
 ---
 
-# 20. O arquivo `.terraform.lock.hcl`
+# 20. 🔒 `.terraform.lock.hcl`
 
-Diferente do `tfstate`, o lock pode ser versionado.
+Esse arquivo pode ir para o Git.
 
-Ele ajuda a travar versões dos providers usados.
-
-Exemplo:
+Ele trava versões dos providers usados.
 
 ```text
 .terraform.lock.hcl
 ```
 
-Ele melhora a consistência entre máquinas e pipelines.
+Ele ajuda todo mundo a usar as mesmas versões.
 
 ---
 
-# 21. `terraform.tfvars`
+# 21. 🧾 `terraform.tfvars`
 
-O `tfvars` serve para sobrescrever valores de variáveis.
+O `tfvars` serve para definir valores reais das variáveis.
 
-Exemplo de variável:
+## `variables.tf`
 
 ```hcl
 variable "state_bucket" {
   type        = string
-  default     = "rocketseat-state-bucket-tf"
-  description = "Bucket com o estado remoto do Terraform"
+  default     = "empresa-state-bucket-tf"
+  description = "Bucket usado para guardar o state remoto"
 }
 ```
 
-Arquivo:
-
-```text
-terraform.tfvars
-```
-
-Conteúdo:
+## `terraform.tfvars`
 
 ```hcl
 state_bucket = "meu-bucket-de-state"
 ```
 
-O valor do `tfvars` sobrescreve o `default`.
-
----
-
-# 22. `tfvars` é parecido com `.env`
+O valor do `terraform.tfvars` sobrescreve o `default`.
 
 Pense assim:
 
 ```text
-variables.tf       → declara quais variáveis existem
-terraform.tfvars   → define valores reais dessas variáveis
+variables.tf     → declara as variáveis
+terraform.tfvars → informa os valores
 ```
 
-Comparação:
+É parecido com:
 
 ```text
-.env está para aplicação
-tfvars está para Terraform
+.env em uma aplicação
 ```
 
-Mas cuidado: `tfvars` não deve ser enviado para o Git se tiver dados sensíveis.
+⚠️ Se tiver dado sensível, não envie para o Git.
 
 ---
 
-# 23. Fluxo recomendado do módulo
+# 22. ✅ Fluxo recomendado
 
-## Primeira vez
+## Quando iniciar ou mudar backend
 
 ```bash
 terraform init
 ```
 
-## Validar sintaxe
-
-```bash
-terraform validate
-```
-
-## Formatador
+## Antes de aplicar
 
 ```bash
 terraform fmt
-```
-
-## Ver plano
-
-```bash
+terraform validate
 terraform plan
 ```
 
-## Aplicar
+## Para aplicar
 
 ```bash
 terraform apply
 ```
 
-## Ver estado
+## Para verificar o state
 
 ```bash
 terraform state list
 ```
 
-## Planejar destruição
+## Para destruir com segurança
 
 ```bash
 terraform plan -destroy
-```
-
-## Destruir com cuidado
-
-```bash
 terraform destroy
 ```
 
 ---
 
-# 24. Fluxo visual
+# 23. 🧭 Fluxo visual
 
 ```text
 1. Escreve código .tf
         ↓
-2. terraform validate
+2. terraform fmt
         ↓
-3. terraform fmt
+3. terraform validate
         ↓
 4. terraform plan
         ↓
@@ -766,59 +700,55 @@ terraform destroy
         ↓
 6. terraform apply
         ↓
-7. Recurso criado/alterado/deletado
+7. Infra muda na AWS
         ↓
-8. terraform.tfstate atualizado
+8. terraform.tfstate é atualizado
 ```
 
 ---
 
-# 25. Estado local vs remoto
+# 24. 🆚 State local vs remoto
 
-| Tipo | Onde fica | Uso recomendado |
-|---|---|---|
-| Local | Na sua máquina | Estudo/testes simples |
-| Remoto | S3, Azure Blob, GCS etc. | Projeto real, equipe, pipeline |
+| Tipo   | Onde fica                            | Melhor uso                      |
+| ------ | ------------------------------------ | ------------------------------- |
+| Local  | Sua máquina                         | Estudo e teste                  |
+| Remoto | S3, Azure Blob, GCS, Terraform Cloud | Projeto real, equipe e pipeline |
 
 ---
 
-# 26. Boas práticas
+# 25. ✅ Boas práticas
 
 ## Faça
 
-```text
-use backend remoto
-ative versionamento no bucket do state
-use prevent_destroy no bucket do state
-rode plan antes do apply
-rode plan -destroy antes do destroy
-ignore tfstate no Git
-versione .terraform.lock.hcl
-use tags como iac = true
-```
+- use backend remoto;
+- ative versionamento no bucket do state;
+- use `prevent_destroy`;
+- rode `plan` antes do `apply`;
+- rode `plan -destroy` antes do `destroy`;
+- ignore `tfstate` no Git;
+- versione `.terraform.lock.hcl`;
+- use tags como `iac = "true"`.
 
 ## Evite
 
-```text
-alterar recurso manualmente no console
-comitar terraform.tfstate
-comitar terraform.tfvars sensível
-rodar destroy sem plan antes
-usar target sem entender dependências
-deixar state só local em projeto real
-```
+- alterar recurso manualmente no console;
+- commitar `terraform.tfstate`;
+- commitar `terraform.tfvars` com dados sensíveis;
+- rodar `destroy` sem revisar;
+- deixar state só local em projeto real;
+- mexer manualmente no state sem necessidade.
 
 ---
 
-# 27. Erros comuns
+# 26. 🧨 Erros comuns
 
 ## 1. Comitar `terraform.tfstate`
 
-Erro grave. Pode expor estrutura da infra.
+Erro grave. Pode expor dados da infraestrutura.
 
 ## 2. Apagar o bucket do state
 
-Pode fazer você perder o controle da infraestrutura.
+Você pode perder o controle da infra.
 
 Use:
 
@@ -828,29 +758,25 @@ prevent_destroy = true
 
 ## 3. Alterar recurso manualmente na AWS
 
-Isso cria diferença entre:
+Cria diferença entre:
 
 ```text
 código
-estado
-infra real
+state
+AWS real
 ```
 
-## 4. Rodar `terraform destroy` sem conferir
+## 4. Rodar `destroy` sem conferir
 
-Pode apagar tudo do projeto.
+Pode apagar tudo.
 
-## 5. Esquecer `terraform init` depois de mudar backend
+## 5. Esquecer `terraform init`
 
-Sempre que mudar backend ou módulo:
-
-```bash
-terraform init
-```
+Sempre rode `init` depois de mudar backend ou adicionar módulos.
 
 ---
 
-# 28. Exemplo completo — Backend S3
+# 27. 📦 Exemplo completo — Backend S3
 
 ```hcl
 terraform {
@@ -862,7 +788,7 @@ terraform {
   }
 
   backend "s3" {
-    bucket  = "rocketseat-state-bucket-tf"
+    bucket  = "empresa-state-bucket-tf"
     key     = "terraform.tfstate"
     region  = "us-east-2"
     encrypt = true
@@ -875,8 +801,8 @@ provider "aws" {
 
 variable "state_bucket" {
   type        = string
-  default     = "rocketseat-state-bucket-tf"
-  description = "Bucket com o estado remoto do Terraform"
+  default     = "empresa-state-bucket-tf"
+  description = "Bucket usado para guardar o state remoto"
 }
 
 resource "aws_s3_bucket" "terraform_state" {
@@ -902,46 +828,67 @@ resource "aws_s3_bucket_versioning" "terraform_state" {
 
 ---
 
-# 29. Checklist de revisão
+# 28. 🧪 Perguntas rápidas
 
-Marque mentalmente:
+## O que é `terraform.tfstate`?
 
-```text
-[ ] Sei o que é terraform.tfstate
-[ ] Sei por que o state não vai para o Git
-[ ] Sei a diferença entre state local e remoto
-[ ] Sei para que serve o terraform.tfstate.backup
-[ ] Sei configurar backend S3
-[ ] Sei por que usar encrypt = true
-[ ] Sei por que ativar versionamento no bucket
-[ ] Sei usar prevent_destroy
-[ ] Sei rodar terraform state list
-[ ] Sei usar plan -destroy antes do destroy
-[ ] Sei o risco do terraform destroy
-[ ] Sei usar --target com cuidado
-[ ] Sei para que serve terraform.tfvars
-[ ] Sei configurar .gitignore para Terraform
-```
+É o arquivo que guarda o estado conhecido da infraestrutura.
 
----
+## Posso enviar `tfstate` para o GitHub?
 
-# 30. Resumo final
+Não. Ele pode conter dados sensíveis.
 
-O **Terraform State** é o mapa da sua infraestrutura.
+## O que é state remoto?
 
-Ele registra tudo que o Terraform criou, alterou ou removeu. Por isso, o arquivo `terraform.tfstate` é extremamente importante e não deve ser enviado para o Git.
+É guardar o state fora da sua máquina, por exemplo em um bucket S3.
 
-Em projeto real, o ideal é usar **estado remoto**, como um bucket S3, com criptografia e versionamento ativados.
+## Para que serve `prevent_destroy`?
 
-Também é importante proteger esse bucket com `prevent_destroy`, porque se ele for apagado você pode perder a referência do que existe na infraestrutura.
+Para impedir que um recurso importante seja destruído sem querer.
 
-Para apagar recursos, use `destroy` com muito cuidado. Sempre rode `terraform plan -destroy` antes e, se quiser apagar apenas um recurso específico, use `--target`.
+## Para que serve `terraform.tfvars`?
+
+Para passar valores reais para as variáveis.
+
+## `destroy` apaga tudo?
+
+Pode apagar tudo que está naquele state. Por isso precisa de cuidado.
 
 ---
 
-## Resumo de 4 linhas
+# 29. ✅ Checklist de revisão
 
-Terraform usa o `terraform.tfstate` para saber o que existe na infraestrutura.  
-Esse estado não deve ser comitado no Git, porque pode ser sensível.  
-Em projetos reais, use backend remoto no S3 com versionamento e criptografia.  
-Cuidado com `destroy`: ele pode apagar tudo se você não limitar o escopo.
+- [ ] Sei o que é `terraform.tfstate`.
+- [ ] Sei por que o state é importante.
+- [ ] Sei a diferença entre state local e remoto.
+- [ ] Sei para que serve o backup.
+- [ ] Sei configurar backend S3.
+- [ ] Sei por que usar `encrypt = true`.
+- [ ] Sei por que ativar versionamento.
+- [ ] Sei usar `prevent_destroy`.
+- [ ] Sei rodar `terraform state list`.
+- [ ] Sei o risco do `terraform destroy`.
+- [ ] Sei usar `--target` com cuidado.
+- [ ] Sei para que serve `terraform.tfvars`.
+- [ ] Sei configurar `.gitignore`.
+
+---
+
+# 30. 🧠 Resumo final
+
+O **Terraform State** é o mapa que mostra ao Terraform o que existe na infraestrutura.
+
+Em estudo, ele pode ficar local. Em projeto real, o ideal é usar **state remoto**, como S3.
+
+O bucket do state deve ser protegido com **criptografia, versionamento e `prevent_destroy`**.
+
+O comando `destroy` deve ser usado com muito cuidado, porque pode apagar tudo que está no state.
+
+---
+
+## 🚀 Resumo em 4 linhas
+
+Terraform usa `terraform.tfstate` para saber o que existe na infraestrutura.
+Esse arquivo não deve ir para o Git, porque pode conter dados sensíveis.
+Em projeto real, use backend remoto no S3 com criptografia e versionamento.
+Sempre revise `terraform plan -destroy` antes de apagar qualquer recurso.
