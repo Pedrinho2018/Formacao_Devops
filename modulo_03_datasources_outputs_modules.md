@@ -1,94 +1,107 @@
-# Módulo 03 — Terraform: Data Sources, Outputs, Variables e Modules
+# 🚀 Módulo 03 — Terraform: Data Sources, Outputs, Variables e Modules
 
-> **Objetivo deste material:** entender como o Terraform busca informações de recursos existentes, expõe valores de saída, usa variáveis e organiza infraestrutura com módulos internos e externos.
-
----
-
-## TL;DR — Resumo rápido
-
-Neste bloco do módulo, você sai do Terraform “básico” e começa a organizar infraestrutura de verdade.
-
-Você aprende a usar:
-
-| Recurso | Para que serve |
-|---|---|
-| `data` | Buscar informações de recursos já existentes |
-| `output` | Expor valores gerados pelo Terraform |
-| `variable` | Evitar código repetido e deixar o código configurável |
-| `module` | Reutilizar blocos de infraestrutura |
-| `depends_on` | Forçar ordem de criação entre recursos |
-| `terraform fmt` | Padronizar a formatação dos arquivos `.tf` |
-| `terraform validate` | Validar sintaxe antes de rodar o plano |
-| `terraform plan` | Ver o que será criado, alterado ou destruído |
-| `terraform apply` | Aplicar as mudanças na AWS |
-| `terraform destroy` | Remover recursos gerenciados pelo Terraform |
+> Guia melhorado para estudar Terraform com foco em **entender o porquê**, não só copiar código.
 
 ---
 
-# 1. O que muda nesta parte do módulo?
+## ⚡ TL;DR — Resumo rápido
 
-Antes, você já tinha visto:
+Nesta parte do módulo, você aprende a deixar o Terraform mais **organizado, reutilizável e profissional**.
 
-- provider AWS;
-- recurso S3;
-- `terraform init`;
-- `terraform plan`;
-- `terraform apply`;
-- `terraform destroy`;
-- `tfstate`;
-- workspaces.
-
-Agora o foco muda para **organização e reaproveitamento**.
-
-A ideia deixa de ser:
-
-> “Criar um recurso simples no Terraform.”
-
-E passa a ser:
-
-> “Criar uma infraestrutura organizada, reaproveitável e fácil de manter.”
+| Conceito       | Explicação direta                           |
+| -------------- | --------------------------------------------- |
+| `data`       | Consulta informações de algo que já existe |
+| `output`     | Mostra valores gerados pelo Terraform         |
+| `variable`   | Deixa o código flexível e evita repetição |
+| `module`     | Agrupa código Terraform reutilizável        |
+| `depends_on` | Garante ordem de criação entre recursos     |
+| `fmt`        | Formata os arquivos `.tf`                   |
+| `validate`   | Valida se a sintaxe está correta             |
+| `plan`       | Mostra o que vai acontecer                    |
+| `apply`      | Aplica as mudanças na nuvem                  |
 
 ---
 
-# 2. Data Source no Terraform
+# 🧠 1. Ideia principal desta parte
 
-## 2.1 O que é um Data Source?
+Antes, você criou recursos básicos com Terraform, como um bucket S3.
 
-Um **Data Source** é uma forma de o Terraform **consultar informações de algo que já existe**.
+Agora o objetivo é evoluir para uma estrutura mais real:
 
-Ele não cria recurso.
+```txt
+Antes:
+Criar um recurso simples.
 
-Ele apenas lê dados.
+Agora:
+Organizar código, reaproveitar blocos e conectar recursos entre si.
+```
 
-Exemplo:
+Exemplo prático:
 
-Você criou um bucket S3. Depois da criação, esse bucket tem várias informações que você não escreveu manualmente:
+```txt
+S3 guarda os arquivos
+        ↓
+CloudFront entrega esses arquivos na internet
+        ↓
+SQS cria fila para comunicação assíncrona
+```
 
-- `id`;
-- `arn`;
-- `bucket_domain_name`;
-- `bucket_regional_domain_name`;
-- `region`;
-- outras propriedades geradas pela AWS.
+Para isso funcionar bem, você precisa entender:
 
-Essas informações podem ser necessárias para criar outro recurso.
-
-Por exemplo:
-
-> O CloudFront precisa saber qual bucket S3 ele vai usar como origem.
-
-Então você pode usar um `data` para buscar essas informações.
+- como consultar dados;
+- como expor informações;
+- como usar variáveis;
+- como criar módulos;
+- como controlar dependências.
 
 ---
 
-## 2.2 Diferença entre `resource` e `data`
+# 🔍 2. Data Source
 
-| Bloco | Função |
-|---|---|
-| `resource` | Cria, altera ou destrói infraestrutura |
-| `data` | Consulta informações de infraestrutura já existente |
+## ✅ O que é?
 
-Exemplo mental:
+`data` serve para **buscar informações de recursos existentes**.
+
+Ele **não cria** recurso.
+
+Ele apenas consulta.
+
+Pense assim:
+
+```txt
+resource = cria algo
+data     = lê algo que já existe
+```
+
+---
+
+## 🧩 Exemplo simples
+
+Imagine que você já tem um bucket S3 criado.
+
+Agora você quer pegar o domínio dele para usar no CloudFront.
+
+```hcl
+data "aws_s3_bucket" "bucket" {
+  bucket = "meu-bucket"
+}
+```
+
+Isso diz:
+
+```txt
+Terraform, procure na AWS um bucket chamado "meu-bucket"
+e deixe as informações dele disponíveis para eu usar.
+```
+
+---
+
+## 🔁 Diferença entre `resource` e `data`
+
+| Bloco        | Faz o quê?         | Exemplo                                 |
+| ------------ | ------------------- | --------------------------------------- |
+| `resource` | Cria/alterar/remove | Criar bucket S3                         |
+| `data`     | Consulta            | Buscar dados de um bucket já existente |
 
 ```hcl
 resource "aws_s3_bucket" "bucket" {
@@ -96,9 +109,7 @@ resource "aws_s3_bucket" "bucket" {
 }
 ```
 
-Esse bloco cria um bucket.
-
-Agora:
+Cria o bucket.
 
 ```hcl
 data "aws_s3_bucket" "bucket" {
@@ -106,122 +117,91 @@ data "aws_s3_bucket" "bucket" {
 }
 ```
 
-Esse bloco consulta um bucket que já existe.
+Consulta o bucket.
 
 ---
 
-## 2.3 Exemplo de Data Source para S3
+## ⚠️ Atenção
 
-Arquivo sugerido:
-
-```txt
-datasources.tf
-```
-
-Código:
-
-```hcl
-data "aws_s3_bucket" "bucket" {
-  bucket = "${var.org_name}-bucket-iac-${terraform.workspace}"
-}
-```
-
-Explicando:
-
-| Parte | Significado |
-|---|---|
-| `data` | Palavra reservada para consulta |
-| `aws_s3_bucket` | Tipo de recurso que será consultado |
-| `bucket` | Nome interno no Terraform |
-| `bucket = ...` | Nome real do bucket na AWS |
-| `terraform.workspace` | Workspace atual, exemplo: `default` ou `staging` |
-
----
-
-## 2.4 Atenção importante
-
-Se o recurso ainda não existir na AWS, o `data` pode falhar.
-
-Por isso, em alguns casos, você primeiro cria o recurso com `resource`, aplica com `terraform apply`, e depois usa `data` para consultar.
-
----
-
-# 3. Outputs no Terraform
-
-## 3.1 O que é Output?
-
-`output` é uma variável de saída.
-
-Ele serve para mostrar ou disponibilizar informações geradas pelo Terraform.
+Se o recurso não existir, o `data` pode falhar.
 
 Exemplo:
 
-Depois que o bucket S3 é criado, você pode querer ver:
+```txt
+Você manda o Terraform consultar um bucket.
+Mas o bucket ainda não foi criado.
+Resultado: erro.
+```
 
-- domínio do bucket;
-- região;
-- ARN;
-- ID;
-- endpoint;
-- URL.
-
-O `output` mostra isso no terminal depois do `terraform apply`.
+Quando o recurso está no mesmo projeto, muitas vezes é melhor usar o output direto do `resource` ou do `module`.
 
 ---
 
-## 3.2 Exemplo simples de Output
+# 📤 3. Outputs
 
-Arquivo sugerido:
+## ✅ O que é?
 
-```txt
-outputs.tf
-```
+`output` serve para **mostrar valores gerados pelo Terraform**.
 
-Código:
+Exemplo:
+
+Depois de criar um bucket, você pode querer ver:
+
+- ID do bucket;
+- domínio do bucket;
+- região;
+- ARN;
+- endpoint.
+
+---
+
+## 🧩 Exemplo de output
 
 ```hcl
 output "bucket_domain_name" {
-  value       = data.aws_s3_bucket.bucket.bucket_domain_name
+  value       = aws_s3_bucket.bucket.bucket_domain_name
+  description = "Domínio do bucket S3"
   sensitive   = false
-  description = "Nome de domínio do bucket S3"
 }
 ```
 
 Explicando:
 
-| Campo | Função |
-|---|---|
-| `output "bucket_domain_name"` | Nome da saída |
-| `value` | Valor que será exibido |
-| `sensitive` | Define se é informação sensível |
-| `description` | Explica o que esse output representa |
+| Campo                           | Função                            |
+| ------------------------------- | ----------------------------------- |
+| `output "bucket_domain_name"` | Nome da saída                      |
+| `value`                       | Valor que será mostrado            |
+| `description`                 | Explica o output                    |
+| `sensitive`                   | Esconde ou não o valor no terminal |
 
 ---
 
-## 3.3 Output da região do bucket
+## 🧠 Para que serve na prática?
 
-```hcl
-output "bucket_region" {
-  value       = data.aws_s3_bucket.bucket.region
-  sensitive   = false
-  description = "Região do bucket S3"
-}
+Output é muito útil para conectar módulos.
+
+Exemplo:
+
+```txt
+Módulo S3 cria o bucket
+        ↓
+Output expõe o domínio do bucket
+        ↓
+Módulo CloudFront usa esse domínio
 ```
 
 ---
 
-## 3.4 Quando usar `sensitive = true`?
+## 🔐 Quando usar `sensitive = true`?
 
-Use `sensitive = true` quando o output mostrar algo confidencial.
-
-Exemplos:
+Use para dados sensíveis:
 
 - senha;
 - token;
 - chave de API;
-- connection string;
 - secret;
-- credencial.
+- connection string;
+- credenciais.
 
 Exemplo:
 
@@ -229,21 +209,20 @@ Exemplo:
 output "database_password" {
   value       = var.database_password
   sensitive   = true
-  description = "Senha do banco de dados"
+  description = "Senha do banco"
 }
 ```
 
-Atenção: marcar como `sensitive` esconde a saída no terminal, mas **não significa que a informação sumiu do state**. O `tfstate` ainda pode conter dados sensíveis. Por isso ele deve ser protegido.
+⚠️ Mesmo com `sensitive = true`, o valor ainda pode aparecer no `tfstate`.
+Por isso, o state precisa ser protegido.
 
 ---
 
-# 4. Variables no Terraform
+# 🧱 4. Variables
 
-## 4.1 O que são variáveis?
+## ✅ O que são?
 
-Variáveis servem para evitar código duplicado.
-
-Em vez de escrever o mesmo nome várias vezes, você cria uma variável e usa em vários lugares.
+Variáveis deixam o código configurável.
 
 Sem variável:
 
@@ -257,94 +236,83 @@ Com variável:
 bucket = "${var.org_name}-bucket-iac-${terraform.workspace}"
 ```
 
-Agora você muda `org_name` em um lugar só.
+Agora você muda o nome da organização em um lugar só.
 
 ---
 
-## 4.2 Arquivo de variáveis
+## 🧩 Exemplo de variável
 
-Arquivo sugerido:
+Arquivo:
 
 ```txt
 variables.tf
 ```
 
-Exemplo:
-
 ```hcl
 variable "org_name" {
   type        = string
   default     = "rocketseat"
-  description = "Nome da organização usado nos recursos"
-}
-```
-
----
-
-## 4.3 Como usar uma variável
-
-Sempre use o prefixo `var.`.
-
-```hcl
-var.org_name
-```
-
-Exemplo completo:
-
-```hcl
-resource "aws_s3_bucket" "bucket" {
-  bucket = "${var.org_name}-bucket-iac-${terraform.workspace}"
-
-  tags = {
-    iac = "true"
-  }
-}
-```
-
----
-
-## 4.4 Tipos comuns de variável
-
-| Tipo | Exemplo | Uso |
-|---|---|---|
-| `string` | `"rocketseat"` | Texto |
-| `number` | `10` | Número |
-| `bool` | `true` | Verdadeiro/falso |
-| `list(string)` | `["a", "b"]` | Lista |
-| `map(string)` | `{ iac = "true" }` | Mapa/chave-valor |
-
----
-
-## 4.5 Exemplo de variável com `map(string)`
-
-Muito usada para tags:
-
-```hcl
-variable "s3_tags" {
-  type        = map(string)
-  default     = {}
-  description = "Tags do bucket S3"
+  description = "Nome da organização"
 }
 ```
 
 Uso:
 
 ```hcl
-resource "aws_s3_bucket" "bucket" {
-  bucket = "${var.s3_bucket_name}-${terraform.workspace}"
-
-  tags = var.s3_tags
-}
+bucket = "${var.org_name}-bucket-iac-${terraform.workspace}"
 ```
 
 ---
 
-# 5. Organização dos arquivos `.tf`
-
-Uma estrutura mais limpa fica assim:
+## 🧠 Como lembrar?
 
 ```txt
-primeiro-projeto-iac/
+variable = entrada
+output   = saída
+data     = consulta
+resource = criação
+```
+
+---
+
+## 🔤 Tipos comuns
+
+| Tipo             | Exemplo              | Quando usar      |
+| ---------------- | -------------------- | ---------------- |
+| `string`       | `"prod"`           | Texto            |
+| `number`       | `3`                | Número          |
+| `bool`         | `true`             | Verdadeiro/falso |
+| `list(string)` | `["a", "b"]`       | Lista            |
+| `map(string)`  | `{ iac = "true" }` | Tags             |
+
+---
+
+## 🏷️ Variável para tags
+
+```hcl
+variable "tags" {
+  type        = map(string)
+  default     = {}
+  description = "Tags do recurso"
+}
+```
+
+Uso:
+
+```hcl
+tags = var.tags
+```
+
+Isso deixa o módulo mais genérico.
+
+---
+
+# 📁 5. Organização dos arquivos
+
+Uma estrutura boa para Terraform:
+
+```txt
+terraform-modulo-03/
 ├── providers.tf
 ├── main.tf
 ├── variables.tf
@@ -354,298 +322,217 @@ primeiro-projeto-iac/
     ├── s3/
     │   ├── main.tf
     │   ├── variables.tf
-    │   ├── outputs.tf
-    │   └── datasources.tf
+    │   └── outputs.tf
     └── cloudfront/
         ├── main.tf
         ├── variables.tf
-        ├── outputs.tf
-        └── datasources.tf
+        └── outputs.tf
 ```
 
-Separar os arquivos ajuda muito.
-
-| Arquivo | Responsabilidade |
-|---|---|
-| `providers.tf` | Configuração dos providers |
-| `main.tf` | Chamada dos recursos ou módulos principais |
-| `variables.tf` | Variáveis de entrada |
-| `outputs.tf` | Saídas do Terraform |
-| `datasources.tf` | Consultas de recursos existentes |
-| `modules/` | Módulos internos reutilizáveis |
+| Arquivo            | Responsabilidade                         |
+| ------------------ | ---------------------------------------- |
+| `providers.tf`   | Configuração do provider               |
+| `main.tf`        | Chamada dos módulos/recursos principais |
+| `variables.tf`   | Entradas configuráveis                  |
+| `outputs.tf`     | Saídas do Terraform                     |
+| `datasources.tf` | Consultas de recursos existentes         |
+| `modules/`       | Códigos reutilizáveis                  |
 
 ---
 
-# 6. Módulos no Terraform
+# 📦 6. Modules
 
-## 6.1 O que é um módulo?
+## ✅ O que é um módulo?
 
-Um módulo é um pacote de arquivos Terraform que resolve uma parte da infraestrutura.
+Módulo é um pacote de código Terraform reutilizável.
 
-Pensa assim:
+Pense assim:
 
-> Módulo é uma “peça reutilizável” da sua infraestrutura.
+```txt
+Módulo = uma peça pronta da infraestrutura
+```
 
-Exemplos de módulos:
+Exemplos:
 
 - módulo de S3;
 - módulo de CloudFront;
 - módulo de VPC;
-- módulo de EKS;
 - módulo de SQS;
-- módulo de IAM.
+- módulo de EKS.
 
 ---
 
-## 6.2 Por que usar módulos?
+## 🧠 Por que usar módulos?
 
 Porque infraestrutura cresce rápido.
 
-Se você colocar tudo no `main.tf`, vira bagunça.
-
-Módulos ajudam em:
-
-- organização;
-- reutilização;
-- manutenção;
-- padronização;
-- redução de duplicidade;
-- reaproveitamento entre projetos;
-- clareza para times.
-
----
-
-## 6.3 Módulo interno vs módulo externo
-
-| Tipo | O que é |
-|---|---|
-| Módulo interno | Criado por você dentro do projeto |
-| Módulo externo | Baixado do Terraform Registry ou Git |
-
-Exemplo de módulo interno:
-
-```hcl
-module "s3" {
-  source = "./modules/s3"
-}
-```
-
-Exemplo de módulo externo:
-
-```hcl
-module "sqs" {
-  source = "terraform-aws-modules/sqs/aws"
-}
-```
-
----
-
-# 7. Criando módulo interno de S3
-
-## 7.1 Estrutura
+Sem módulo:
 
 ```txt
-modules/
-└── s3/
-    ├── main.tf
-    ├── variables.tf
-    └── outputs.tf
+main.tf gigante
+código repetido
+difícil manter
+difícil reaproveitar
+```
+
+Com módulo:
+
+```txt
+cada parte em seu lugar
+código reutilizável
+mais fácil entender
+mais fácil alterar
 ```
 
 ---
 
-## 7.2 `modules/s3/variables.tf`
+## 🔁 Módulo interno vs externo
+
+| Tipo    | O que é            | Exemplo                           |
+| ------- | ------------------- | --------------------------------- |
+| Interno | Criado por você    | `./modules/s3`                  |
+| Externo | Vem do Registry/Git | `terraform-aws-modules/sqs/aws` |
+
+---
+
+# 🪣 7. Módulo interno de S3
+
+## 📁 Estrutura
+
+```txt
+modules/s3/
+├── main.tf
+├── variables.tf
+└── outputs.tf
+```
+
+---
+
+## `modules/s3/variables.tf`
 
 ```hcl
-variable "s3_bucket_name" {
+variable "bucket_name" {
   type        = string
   description = "Nome base do bucket S3"
 }
 
-variable "s3_tags" {
+variable "tags" {
   type        = map(string)
   default     = {}
-  description = "Tags do bucket S3"
+  description = "Tags do bucket"
 }
 ```
 
 ---
 
-## 7.3 `modules/s3/main.tf`
+## `modules/s3/main.tf`
 
 ```hcl
 resource "aws_s3_bucket" "bucket" {
-  bucket = "${var.s3_bucket_name}-${terraform.workspace}"
+  bucket = "${var.bucket_name}-${terraform.workspace}"
 
-  tags = var.s3_tags
+  tags = var.tags
 }
 ```
 
-Aqui o nome final muda conforme o workspace.
+O nome muda conforme o workspace:
 
-Exemplo:
-
-| Workspace | Nome gerado |
-|---|---|
+| Workspace   | Nome final                 |
+| ----------- | -------------------------- |
 | `default` | `rocketseat-iac-default` |
 | `staging` | `rocketseat-iac-staging` |
-| `prod` | `rocketseat-iac-prod` |
+| `prod`    | `rocketseat-iac-prod`    |
 
 ---
 
-## 7.4 `modules/s3/outputs.tf`
+## `modules/s3/outputs.tf`
 
 ```hcl
-output "bucket_domain_name" {
-  value       = aws_s3_bucket.bucket.bucket_domain_name
-  sensitive   = false
-  description = "Nome de domínio do bucket S3"
-}
-
 output "bucket_id" {
   value       = aws_s3_bucket.bucket.id
-  sensitive   = false
-  description = "ID do bucket S3"
+  description = "ID do bucket"
+}
+
+output "bucket_domain_name" {
+  value       = aws_s3_bucket.bucket.bucket_domain_name
+  description = "Domínio do bucket"
 }
 ```
 
-Esses outputs podem ser usados por outro módulo.
-
-Exemplo:
-
-> O módulo CloudFront precisa saber o domínio e o ID do bucket S3.
+Esses outputs serão usados pelo CloudFront.
 
 ---
 
-# 8. Chamando o módulo S3 na raiz
+# 🌐 8. Módulo interno de CloudFront
 
-Arquivo:
+## ✅ O que é CloudFront?
+
+CloudFront é a CDN da AWS.
+
+CDN significa:
 
 ```txt
-main.tf
+Content Delivery Network
 ```
-
-Código:
-
-```hcl
-module "s3" {
-  source = "./modules/s3"
-
-  s3_bucket_name = "rocketseat-iac"
-
-  s3_tags = {
-    iac = "true"
-  }
-}
-```
-
----
-
-## 8.1 Ponto importante
-
-Sempre que adicionar ou alterar módulos, rode:
-
-```bash
-terraform init
-```
-
-Depois:
-
-```bash
-terraform fmt
-terraform validate
-terraform plan
-terraform apply
-```
-
----
-
-# 9. Criando módulo interno de CloudFront
-
-## 9.1 O que é CloudFront?
-
-CloudFront é o serviço de CDN da AWS.
-
-CDN significa **Content Delivery Network**, ou seja, rede de entrega de conteúdo.
 
 Uso comum:
 
-- entregar frontend;
-- cachear arquivos estáticos;
-- melhorar performance;
-- servir conteúdo vindo de S3;
-- disponibilizar domínio de acesso.
-
-Fluxo mental:
-
 ```txt
-Usuário → CloudFront → S3
-```
-
-O CloudFront fica na frente.
-
-O S3 guarda os arquivos.
-
----
-
-## 9.2 Por que o CloudFront depende do S3?
-
-Porque ele precisa saber:
-
-- qual bucket será usado como origem;
-- qual domínio do bucket será usado;
-- qual ID/origin ID será usado.
-
-Por isso o S3 precisa ser criado antes.
-
----
-
-## 9.3 Estrutura do módulo CloudFront
-
-```txt
-modules/
-└── cloudfront/
-    ├── main.tf
-    ├── variables.tf
-    └── outputs.tf
+Usuário acessa o site
+        ↓
+CloudFront responde rápido
+        ↓
+CloudFront busca arquivos no S3 quando necessário
 ```
 
 ---
 
-## 9.4 `modules/cloudfront/variables.tf`
+## 🧠 Por que depende do S3?
+
+Porque o CloudFront precisa saber:
+
+- qual bucket será a origem;
+- qual domínio do bucket;
+- qual ID da origem.
+
+Por isso o S3 precisa existir antes.
+
+---
+
+## `modules/cloudfront/variables.tf`
 
 ```hcl
 variable "origin_id" {
   type        = string
-  description = "ID da origem do CloudFront"
+  description = "ID da origem"
 }
 
 variable "bucket_domain_name" {
   type        = string
-  description = "Nome de domínio do bucket S3"
+  description = "Domínio do bucket S3"
 }
 
-variable "cdn_price_class" {
+variable "price_class" {
   type        = string
   default     = "PriceClass_200"
   description = "Classe de preço da CDN"
 }
 
-variable "cdn_tags" {
+variable "tags" {
   type        = map(string)
   default     = {}
-  description = "Tags da CDN"
+  description = "Tags do CloudFront"
 }
 ```
 
 ---
 
-## 9.5 `modules/cloudfront/main.tf`
+## `modules/cloudfront/main.tf`
 
 ```hcl
-resource "aws_cloudfront_distribution" "cloudfront" {
+resource "aws_cloudfront_distribution" "cdn" {
   enabled     = true
-  price_class = var.cdn_price_class
+  price_class = var.price_class
 
   origin {
     origin_id   = var.origin_id
@@ -685,32 +572,40 @@ resource "aws_cloudfront_distribution" "cloudfront" {
     cloudfront_default_certificate = true
   }
 
-  tags = var.cdn_tags
+  tags = var.tags
 }
 ```
 
 ---
 
-## 9.6 Chamando CloudFront na raiz
+# 🔗 9. Conectando S3 com CloudFront
 
-Arquivo:
-
-```txt
-main.tf
-```
-
-Código:
+Na raiz do projeto:
 
 ```hcl
+module "s3" {
+  source = "./modules/s3"
+
+  bucket_name = "rocketseat-iac"
+
+  tags = {
+    iac         = "true"
+    environment = terraform.workspace
+    project     = "modulo-03"
+  }
+}
+
 module "cloudfront" {
   source = "./modules/cloudfront"
 
   origin_id          = module.s3.bucket_id
   bucket_domain_name = module.s3.bucket_domain_name
-  cdn_price_class    = "PriceClass_200"
+  price_class        = "PriceClass_200"
 
-  cdn_tags = {
-    iac = "true"
+  tags = {
+    iac         = "true"
+    environment = terraform.workspace
+    project     = "modulo-03"
   }
 
   depends_on = [module.s3]
@@ -719,33 +614,33 @@ module "cloudfront" {
 
 ---
 
-## 9.7 O que está acontecendo aqui?
+## 🧠 O que está acontecendo?
 
 ```hcl
 origin_id = module.s3.bucket_id
 ```
 
-O CloudFront pega o ID vindo do output do módulo S3.
+Pega o ID gerado pelo módulo S3.
 
 ```hcl
 bucket_domain_name = module.s3.bucket_domain_name
 ```
 
-O CloudFront pega o domínio do bucket vindo do módulo S3.
+Pega o domínio do bucket gerado pelo módulo S3.
 
 ```hcl
 depends_on = [module.s3]
 ```
 
-Garante que o S3 será criado antes do CloudFront.
+Garante que o S3 seja criado antes do CloudFront.
 
 ---
 
-# 10. `depends_on`
+# ⛓️ 10. `depends_on`
 
-## 10.1 O que é?
+## ✅ O que faz?
 
-`depends_on` força uma ordem de dependência.
+`depends_on` força ordem de criação.
 
 Exemplo:
 
@@ -753,277 +648,167 @@ Exemplo:
 depends_on = [module.s3]
 ```
 
-Isso significa:
+Significa:
 
-> “Só crie este recurso depois que o módulo S3 estiver pronto.”
+```txt
+Crie este recurso somente depois do módulo S3.
+```
 
 ---
 
-## 10.2 Quando usar?
+## Quando usar?
 
-Use quando um recurso realmente depende de outro.
+Use quando um recurso depende claramente de outro.
 
 Exemplos:
 
-- CloudFront depende do S3;
-- Website config depende do bucket;
-- Policy depende de role;
-- Subnet depende de VPC;
-- Route table association depende da subnet e da route table.
+| Recurso               | Depende de     |
+| --------------------- | -------------- |
+| CloudFront            | S3             |
+| Subnet                | VPC            |
+| Security Group Rule   | Security Group |
+| Bucket Website Config | Bucket         |
+| Policy Attachment     | IAM Role       |
 
 ---
 
-# 11. Melhorando os módulos com tags
+# 🧰 11. Comandos importantes
 
-Tags são essenciais para organização.
-
-Exemplo:
-
-```hcl
-tags = {
-  iac = "true"
-}
-```
-
-Recomendação:
-
-```hcl
-tags = {
-  iac         = "true"
-  environment = terraform.workspace
-  project     = "modulo-03-iac"
-}
-```
-
-Tags ajudam a responder:
-
-- quem criou o recurso?
-- é gerenciado por IaC?
-- pertence a qual ambiente?
-- pertence a qual projeto?
-- pode ser deletado?
-- gera custo para qual área?
-
----
-
-# 12. `terraform fmt`
-
-## 12.1 Para que serve?
-
-Formata automaticamente os arquivos Terraform.
-
-```bash
-terraform fmt
-```
-
-Para formatar tudo, inclusive subpastas:
+## Formatar
 
 ```bash
 terraform fmt -recursive
 ```
 
-Use antes de commitar.
+Use para deixar o código padronizado.
 
 ---
 
-# 13. `terraform validate`
-
-## 13.1 Para que serve?
-
-Valida a sintaxe dos arquivos `.tf`.
+## Validar
 
 ```bash
 terraform validate
 ```
 
-Ele detecta erros como:
-
-- atributo escrito errado;
-- variável inexistente;
-- bloco inválido;
-- argumento não esperado;
-- estrutura quebrada.
+Use para conferir se a sintaxe está correta.
 
 ---
 
-# 14. Módulo externo: SQS
+## Planejar
 
-## 14.1 O que é SQS?
-
-SQS significa **Simple Queue Service**.
-
-É o serviço de filas da AWS.
-
-Ele é usado para comunicação assíncrona.
-
-Exemplo:
-
-```txt
-Sistema A envia mensagem → SQS → Sistema B consome depois
+```bash
+terraform plan
 ```
 
-Isso desacopla sistemas.
+Mostra o que será criado, alterado ou destruído.
 
 ---
 
-## 14.2 O que é DLQ?
+## Aplicar
 
-DLQ significa **Dead Letter Queue**.
+```bash
+terraform apply
+```
 
-É uma fila para mensagens que deram erro no processamento.
+Aplica as mudanças.
+
+Com aprovação automática:
+
+```bash
+terraform apply -auto-approve
+```
+
+---
+
+## Destruir
+
+```bash
+terraform plan -destroy
+terraform destroy
+```
+
+⚠️ Sempre revise antes de destruir.
+
+---
+
+# 📨 12. Módulo externo SQS
+
+## ✅ O que é SQS?
+
+SQS é o serviço de filas da AWS.
+
+Ele permite comunicação assíncrona.
 
 Exemplo:
 
 ```txt
-Mensagem chega na fila principal
-↓
-Aplicação tenta processar
-↓
+Sistema A envia mensagem
+        ↓
+SQS guarda
+        ↓
+Sistema B processa depois
+```
+
+---
+
+## ☠️ O que é DLQ?
+
+DLQ significa:
+
+```txt
+Dead Letter Queue
+```
+
+É uma fila para mensagens que deram erro.
+
+Fluxo:
+
+```txt
+Mensagem entra na fila principal
+        ↓
+Sistema tenta processar
+        ↓
 Falha várias vezes
-↓
+        ↓
 Mensagem vai para DLQ
 ```
 
-Isso evita perder eventos importantes.
+Assim você não perde mensagens importantes.
 
 ---
 
-## 14.3 Usando módulo externo SQS
-
-Arquivo:
-
-```txt
-main.tf
-```
-
-Exemplo:
+## Exemplo com módulo externo
 
 ```hcl
 module "sqs" {
   source = "terraform-aws-modules/sqs/aws"
 
-  name       = "rocketseat-sqs"
+  name       = "rocketseat-sqs-${terraform.workspace}"
   create_dlq = true
 
   tags = {
-    iac = "true"
+    iac         = "true"
+    environment = terraform.workspace
+    project     = "modulo-03"
   }
 }
 ```
 
----
-
-## 14.4 O que o módulo SQS cria?
-
-Mesmo com poucas linhas, ele pode criar vários recursos:
-
-- fila principal;
-- DLQ;
-- política de redrive;
-- permissões/configurações auxiliares.
-
-Essa é a força de usar módulos.
-
-Você escreve pouco, mas recebe uma estrutura mais completa.
-
----
-
-## 14.5 Sempre rode `terraform init` ao usar módulo externo
-
-Quando você adiciona:
-
-```hcl
-source = "terraform-aws-modules/sqs/aws"
-```
-
-O Terraform precisa baixar o módulo.
-
-Rode:
+Depois de adicionar módulo externo, rode:
 
 ```bash
 terraform init
-```
-
-Depois:
-
-```bash
 terraform plan
 terraform apply
 ```
 
 ---
 
-# 15. Múltiplos Data Sources
+# 🌍 13. Website configuration no S3
 
-## 15.1 Por que usar múltiplos data sources?
+## ✅ O que é?
 
-Quando sua infraestrutura cresce, um recurso começa a depender de vários dados.
-
-Exemplo:
-
-Você pode consultar:
-
-- bucket S3;
-- distribuição CloudFront;
-- fila SQS;
-- VPC;
-- subnets;
-- security groups;
-- IAM roles.
-
-Cada consulta pode ficar em um `datasources.tf`.
-
----
-
-## 15.2 Data source do S3 dentro do módulo
-
-Exemplo:
-
-```hcl
-data "aws_s3_bucket" "bucket" {
-  bucket = aws_s3_bucket.bucket.bucket
-}
-```
-
----
-
-## 15.3 Data source do CloudFront
-
-Exemplo conceitual:
-
-```hcl
-data "aws_cloudfront_distribution" "cloudfront" {
-  id = aws_cloudfront_distribution.cloudfront.id
-}
-```
-
----
-
-## 15.4 Outputs usando Data Sources
-
-Exemplo:
-
-```hcl
-output "cdn_id" {
-  value       = data.aws_cloudfront_distribution.cloudfront.id
-  sensitive   = false
-  description = "ID do CloudFront"
-}
-
-output "cdn_domain_name" {
-  value       = data.aws_cloudfront_distribution.cloudfront.domain_name
-  sensitive   = false
-  description = "Nome de domínio do CloudFront"
-}
-```
-
----
-
-# 16. Website configuration no S3
-
-## 16.1 O que é?
-
-É uma configuração para o bucket S3 atuar como site estático.
+É uma configuração que permite usar o S3 como site estático.
 
 Exemplo:
 
@@ -1043,179 +828,15 @@ resource "aws_s3_bucket_website_configuration" "bucket" {
 }
 ```
 
----
-
-## 16.2 Por que usar `depends_on` aqui?
-
-Porque a configuração de website só pode ser aplicada depois que o bucket existir.
-
-```hcl
-depends_on = [aws_s3_bucket.bucket]
-```
+Isso é comum para sites front-end simples.
 
 ---
 
-# 17. Fluxo completo recomendado
+# 🏷️ 14. Tags
 
-Sempre siga esta ordem:
+Tags ajudam a organizar recursos.
 
-```bash
-terraform fmt -recursive
-terraform validate
-terraform plan
-terraform apply
-```
-
-Para destruir:
-
-```bash
-terraform plan -destroy
-terraform destroy
-```
-
-Ou:
-
-```bash
-terraform apply -destroy
-```
-
----
-
-# 18. Fluxo mental desta parte do módulo
-
-```txt
-1. Criar módulo S3
-   ↓
-2. Expor outputs do S3
-   ↓
-3. Criar módulo CloudFront
-   ↓
-4. Passar outputs do S3 como inputs do CloudFront
-   ↓
-5. Usar depends_on para garantir ordem
-   ↓
-6. Usar tags para organização
-   ↓
-7. Usar módulo externo SQS para evitar código gigante
-   ↓
-8. Criar data sources e outputs para consultar informações geradas
-```
-
----
-
-# 19. Erros comuns
-
-## Erro 1 — Esquecer `terraform init`
-
-Quando você cria ou muda módulo, rode:
-
-```bash
-terraform init
-```
-
-Senão pode aparecer erro de módulo não instalado.
-
----
-
-## Erro 2 — Passar variável não declarada no módulo
-
-Exemplo errado:
-
-```hcl
-module "s3" {
-  source = "./modules/s3"
-
-  url = "teste"
-}
-```
-
-Se `url` não existir em `modules/s3/variables.tf`, o Terraform retorna erro parecido com:
-
-```txt
-An argument named "url" is not expected here.
-```
-
-Correção:
-
-Declare a variável no módulo:
-
-```hcl
-variable "url" {
-  type        = string
-  description = "URL usada pelo módulo"
-}
-```
-
-Ou remova o argumento.
-
----
-
-## Erro 3 — Nome de bucket S3 já existe
-
-Bucket S3 precisa ter nome globalmente único.
-
-Se der conflito, use algo mais específico:
-
-```hcl
-bucket = "nortemt-${var.s3_bucket_name}-${terraform.workspace}"
-```
-
----
-
-## Erro 4 — Alterar recurso manualmente no console
-
-Se você altera manualmente no console da AWS, quebra a ideia de IaC.
-
-O Terraform pode desfazer sua alteração no próximo `apply`.
-
-A fonte da verdade deve ser o código.
-
----
-
-## Erro 5 — CloudFront demora para criar
-
-CloudFront pode demorar alguns minutos.
-
-Isso é normal.
-
-Não mate o processo sem necessidade.
-
----
-
-## Erro 6 — Data Source buscando recurso inexistente
-
-Se o `data` consulta algo que ainda não existe, o Terraform pode falhar.
-
-Solução:
-
-- criar o recurso primeiro;
-- usar outputs diretos do recurso;
-- ajustar dependências;
-- separar o apply em etapas, se necessário.
-
----
-
-# 20. Boas práticas
-
-## 20.1 Separe responsabilidades
-
-Evite jogar tudo no `main.tf`.
-
-Prefira:
-
-```txt
-providers.tf
-variables.tf
-outputs.tf
-datasources.tf
-main.tf
-```
-
----
-
-## 20.2 Use tags sempre
-
-No mínimo:
+Exemplo mínimo:
 
 ```hcl
 tags = {
@@ -1229,24 +850,138 @@ Melhor:
 tags = {
   iac         = "true"
   environment = terraform.workspace
-  project     = "terraform-modulo-03"
+  project     = "modulo-03"
 }
+```
+
+Use tags para saber:
+
+- qual projeto criou;
+- qual ambiente usa;
+- se é gerenciado por IaC;
+- quem deve pagar o custo;
+- se pode ser removido.
+
+---
+
+# ⚠️ 15. Erros comuns
+
+## 1. Esquecer `terraform init`
+
+Acontece quando você adiciona provider ou módulo.
+
+Correção:
+
+```bash
+terraform init
 ```
 
 ---
 
-## 20.3 Use `fmt` e `validate`
+## 2. Passar variável que o módulo não espera
 
-Antes de rodar `plan`:
+Errado:
+
+```hcl
+module "s3" {
+  source = "./modules/s3"
+
+  url = "teste"
+}
+```
+
+Se `url` não existe em `variables.tf`, dá erro.
+
+Correção:
+
+```txt
+Declare a variável no módulo ou remova o argumento.
+```
+
+---
+
+## 3. Bucket S3 já existe
+
+Bucket S3 precisa ter nome único globalmente.
+
+Correção:
+
+```hcl
+bucket = "nortemt-${var.bucket_name}-${terraform.workspace}"
+```
+
+---
+
+## 4. Alterar recurso manualmente no console
+
+Isso quebra a ideia de IaC.
+
+Correção:
+
+```txt
+Altere no código .tf
+rode plan
+rode apply
+```
+
+---
+
+## 5. CloudFront demora
+
+CloudFront pode levar alguns minutos para criar.
+
+Isso é normal.
+
+---
+
+## 6. `data` buscando recurso inexistente
+
+Se o recurso não existe, a consulta falha.
+
+Correção:
+
+- crie o recurso primeiro;
+- use output do módulo;
+- ajuste dependências.
+
+---
+
+# ✅ 16. Boas práticas
+
+## Organização
+
+- Separe arquivos por responsabilidade.
+- Use módulos para partes reutilizáveis.
+- Não deixe tudo no `main.tf`.
+- Use nomes claros.
+
+---
+
+## Segurança
+
+- Não commite `tfstate`.
+- Não commite `.tfvars` com segredo.
+- Não use Access Key fixa sem necessidade.
+- Proteja outputs sensíveis.
+
+---
+
+## Execução
+
+Sempre rode:
 
 ```bash
 terraform fmt -recursive
 terraform validate
+terraform plan
+terraform apply
 ```
 
 ---
 
-## 20.4 Evite valores hardcoded
+## Código limpo
+
+Evite hardcoded.
 
 Ruim:
 
@@ -1257,55 +992,27 @@ bucket = "rocketseat-bucket-iac-staging"
 Melhor:
 
 ```hcl
-bucket = "${var.s3_bucket_name}-${terraform.workspace}"
+bucket = "${var.bucket_name}-${terraform.workspace}"
 ```
 
 ---
 
-## 20.5 Não commite arquivos sensíveis
+# 🧪 17. Mini projeto desta parte
 
-Evite commitar:
+Objetivo:
 
 ```txt
-.terraform/
-terraform.tfstate
-terraform.tfstate.backup
-*.tfvars
+Criar uma infra com:
+- S3
+- CloudFront
+- SQS com DLQ
+- variables
+- outputs
+- modules
+- depends_on
 ```
 
-Exemplo de `.gitignore`:
-
-```gitignore
-.terraform/
-*.tfstate
-*.tfstate.*
-*.tfvars
-crash.log
-override.tf
-override.tf.json
-*_override.tf
-*_override.tf.json
-```
-
----
-
-# 21. Mini projeto desta parte
-
-## Objetivo
-
-Criar uma infraestrutura com:
-
-- S3;
-- CloudFront;
-- SQS com DLQ;
-- outputs;
-- variables;
-- data sources;
-- modules.
-
----
-
-## Estrutura final sugerida
+Estrutura:
 
 ```txt
 terraform-modulo-03/
@@ -1313,199 +1020,124 @@ terraform-modulo-03/
 ├── main.tf
 ├── variables.tf
 ├── outputs.tf
-├── datasources.tf
 ├── .gitignore
 └── modules/
     ├── s3/
-    │   ├── main.tf
-    │   ├── variables.tf
-    │   ├── outputs.tf
-    │   └── datasources.tf
     └── cloudfront/
-        ├── main.tf
-        ├── variables.tf
-        ├── outputs.tf
-        └── datasources.tf
 ```
 
 ---
 
-# 22. Exemplo final de `main.tf` da raiz
+# 🧭 18. Fluxo mental completo
 
-```hcl
-module "s3" {
-  source = "./modules/s3"
-
-  s3_bucket_name = "rocketseat-iac"
-
-  s3_tags = {
-    iac         = "true"
-    environment = terraform.workspace
-    project     = "modulo-03"
-  }
-}
-
-module "cloudfront" {
-  source = "./modules/cloudfront"
-
-  origin_id          = module.s3.bucket_id
-  bucket_domain_name = module.s3.bucket_domain_name
-  cdn_price_class    = "PriceClass_200"
-
-  cdn_tags = {
-    iac         = "true"
-    environment = terraform.workspace
-    project     = "modulo-03"
-  }
-
-  depends_on = [module.s3]
-}
-
-module "sqs" {
-  source = "terraform-aws-modules/sqs/aws"
-
-  name       = "rocketseat-sqs-${terraform.workspace}"
-  create_dlq = true
-
-  tags = {
-    iac         = "true"
-    environment = terraform.workspace
-    project     = "modulo-03"
-  }
-}
+```txt
+1. Crio variáveis
+        ↓
+2. Crio módulo S3
+        ↓
+3. Exponho outputs do S3
+        ↓
+4. Crio módulo CloudFront
+        ↓
+5. Passo outputs do S3 para CloudFront
+        ↓
+6. Uso depends_on
+        ↓
+7. Adiciono tags
+        ↓
+8. Uso módulo externo SQS
+        ↓
+9. Rodo fmt, validate, plan e apply
 ```
 
 ---
 
-# 23. Checklist de revisão
+# 🧠 19. Mapa mental rápido
 
-Marque quando entender:
-
-- [ ] Sei explicar a diferença entre `resource` e `data`.
-- [ ] Sei criar um `datasources.tf`.
-- [ ] Sei criar um `outputs.tf`.
-- [ ] Sei usar `value = data...`.
-- [ ] Sei usar `value = module...`.
-- [ ] Sei criar variáveis em `variables.tf`.
-- [ ] Sei usar `var.nome_da_variavel`.
-- [ ] Sei criar módulo interno.
-- [ ] Sei chamar módulo interno com `source = "./modules/..."`.
-- [ ] Sei usar módulo externo do Terraform Registry.
-- [ ] Sei quando rodar `terraform init`.
-- [ ] Sei usar `terraform fmt -recursive`.
-- [ ] Sei usar `terraform validate`.
-- [ ] Sei usar `depends_on`.
-- [ ] Sei por que tags são importantes.
-- [ ] Sei por que CloudFront depende do S3.
-- [ ] Sei o que é SQS.
-- [ ] Sei o que é DLQ.
-
----
-
-# 24. Perguntas para testar conhecimento
-
-## 1. Data Source cria recurso?
-
-Não. Data Source apenas consulta informações de recursos existentes.
+```txt
+Terraform
+├── data
+│   └── consulta recurso existente
+├── output
+│   └── mostra valores gerados
+├── variable
+│   └── deixa configurável
+├── module
+│   ├── interno
+│   └── externo
+├── depends_on
+│   └── controla dependência
+├── S3
+│   └── armazena arquivos
+├── CloudFront
+│   └── entrega conteúdo
+└── SQS
+    ├── fila principal
+    └── DLQ
+```
 
 ---
 
-## 2. Output serve para quê?
+# 📝 20. Perguntas de revisão
 
-Serve para expor valores gerados ou consultados pelo Terraform.
+## Data Source cria recurso?
+
+Não. Ele apenas consulta.
 
 ---
 
-## 3. Por que usar variável?
+## Output serve para quê?
+
+Para expor valores gerados ou consultados.
+
+---
+
+## Variável serve para quê?
 
 Para evitar repetição e deixar o código configurável.
 
 ---
 
-## 4. Por que usar módulo?
+## Módulo serve para quê?
 
-Para reutilizar código e organizar melhor a infraestrutura.
-
----
-
-## 5. Quando rodar `terraform init`?
-
-Quando iniciar o projeto, alterar provider ou adicionar/alterar módulos.
+Para organizar e reaproveitar código Terraform.
 
 ---
 
-## 6. O que `depends_on` faz?
+## O que é `depends_on`?
 
-Força ordem de criação entre recursos ou módulos.
+É uma forma de forçar ordem de criação.
 
 ---
 
-## 7. O que é DLQ?
+## O que é DLQ?
 
 É uma fila para mensagens que falharam no processamento.
 
 ---
 
-# 25. Mapa mental textual
+# ✅ 21. Checklist final
 
-```txt
-Terraform avançando
-├── Data Sources
-│   ├── Lê recurso existente
-│   ├── Usa palavra data
-│   └── Ajuda a reaproveitar atributos
-│
-├── Outputs
-│   ├── Mostra saídas
-│   ├── Pode alimentar outros módulos
-│   └── Pode ser sensitive
-│
-├── Variables
-│   ├── Evita repetição
-│   ├── Usa var.nome
-│   ├── Pode ter type
-│   └── Pode ter default
-│
-├── Modules
-│   ├── Internos
-│   │   ├── ./modules/s3
-│   │   └── ./modules/cloudfront
-│   └── Externos
-│       └── terraform-aws-modules/sqs/aws
-│
-├── Dependências
-│   └── depends_on
-│
-└── Boas práticas
-    ├── fmt
-    ├── validate
-    ├── tags
-    ├── sem hardcoded
-    └── não commitar tfstate
-```
+- [ ] Entendi `data`.
+- [ ] Entendi `output`.
+- [ ] Entendi `variable`.
+- [ ] Entendi `module`.
+- [ ] Sei diferenciar módulo interno e externo.
+- [ ] Sei por que S3 e CloudFront se conectam.
+- [ ] Sei usar `depends_on`.
+- [ ] Sei por que tags são importantes.
+- [ ] Sei rodar `terraform fmt -recursive`.
+- [ ] Sei rodar `terraform validate`.
+- [ ] Sei rodar `terraform plan`.
+- [ ] Sei rodar `terraform apply`.
+- [ ] Sei o que é SQS.
+- [ ] Sei o que é DLQ.
 
 ---
 
-# 26. Resumo final em 4 linhas
+# 🧾 Resumo final em 4 linhas
 
-Data Source consulta informações de recursos existentes.  
-Output expõe valores que podem ser usados depois.  
-Variables deixam o código flexível e sem repetição.  
-Modules organizam a infraestrutura e evitam código duplicado.
-
----
-
-# 27. Próximo passo lógico
-
-Depois desta parte, o próximo assunto natural é:
-
-> **gerenciamento de estado remoto no Terraform**.
-
-Porque até aqui o state ainda está local.
-
-Em projeto real, o state precisa ficar remoto, protegido e compartilhável, normalmente usando:
-
-- S3;
-- DynamoDB para lock;
-- Terraform Cloud;
-- outro backend remoto.
+`data` consulta informações de recursos existentes.
+`output` expõe valores para visualização ou uso em outros módulos.
+`variable` evita repetição e deixa o Terraform configurável.
+`module` organiza a infraestrutura e permite reaproveitar código.
