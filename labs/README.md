@@ -11,8 +11,8 @@ Transformar teoria em implementações pequenas, reproduzíveis e seguras.
 | Lab | Tema | Status |
 |---|---|---|
 | [`01-terraform-basics`](01-terraform-basics/) | Terraform: init, fmt, validate, plan, apply, output e destroy | ✅ Disponível |
-| `02-docker-app` | Dockerfile e execução de aplicação | ⏳ Planejado |
-| `03-docker-compose` | Aplicação + serviço dependente | ⏳ Planejado |
+| [`02-docker-app`](02-docker-app/) | Dockerfile, build, healthcheck, usuário não-root e Compose básico | ✅ Disponível |
+| `03-docker-compose` | Aplicação + serviço dependente, rede e persistência | ⏳ Planejado |
 | `04-github-actions` | Pipeline de validação | ⏳ Planejado |
 | `05-ci-iac` | `fmt` + `validate` para Terraform | ⏳ Planejado |
 | `06-observability` | Health checks, logs e métricas | ⏳ Planejado |
