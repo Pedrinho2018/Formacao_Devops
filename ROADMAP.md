@@ -17,9 +17,11 @@ Este roadmap transforma o repositório de anotações em uma trilha prática de 
 - [x] Data Sources
 - [x] Outputs
 - [x] Modules
-- [ ] Criar laboratório Terraform reproduzível
-- [ ] Adicionar validação com `terraform fmt`
-- [ ] Adicionar validação com `terraform validate`
+- [x] Criar laboratório Terraform reproduzível
+- [x] Adicionar validação com `terraform fmt`
+- [x] Adicionar validação com `terraform validate`
+
+➡️ Lab: [`labs/01-terraform-basics`](labs/01-terraform-basics/)
 
 ## Fase 3 — CI/CD
 

@@ -6,11 +6,11 @@ Esta pasta concentra os laboratórios práticos da trilha.
 
 Transformar teoria em implementações pequenas, reproduzíveis e seguras.
 
-## Backlog inicial
+## Laboratórios
 
 | Lab | Tema | Status |
 |---|---|---|
-| `01-terraform-basics` | Terraform: init, plan, apply, output e destroy | ⏳ Planejado |
+| [`01-terraform-basics`](01-terraform-basics/) | Terraform: init, fmt, validate, plan, apply, output e destroy | ✅ Disponível |
 | `02-docker-app` | Dockerfile e execução de aplicação | ⏳ Planejado |
 | `03-docker-compose` | Aplicação + serviço dependente | ⏳ Planejado |
 | `04-github-actions` | Pipeline de validação | ⏳ Planejado |
