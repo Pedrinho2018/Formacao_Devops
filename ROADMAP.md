@@ -33,12 +33,15 @@ Este roadmap transforma o repositório de anotações em uma trilha prática de 
 
 ## Fase 4 — Containers
 
-- [ ] Dockerfile
-- [ ] Build de imagem
+- [x] Dockerfile
+- [x] Build de imagem
 - [ ] Volumes e redes
-- [ ] Docker Compose
-- [ ] Healthcheck
-- [ ] Boas práticas de imagem
+- [x] Docker Compose básico
+- [x] Healthcheck
+- [x] Boas práticas de imagem
+- [ ] Compose multi-serviço
+
+➡️ Lab: [`labs/02-docker-app`](labs/02-docker-app/)
 
 ## Fase 5 — Automação e entrega
 
@@ -52,7 +55,7 @@ Este roadmap transforma o repositório de anotações em uma trilha prática de 
 
 - [ ] Logs
 - [ ] Métricas
-- [ ] Health checks
+- [x] Health checks básicos
 - [ ] Conceitos de Zabbix/Grafana aplicados ao ciclo DevOps
 - [ ] Dashboard de laboratório
 

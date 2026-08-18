@@ -2,10 +2,11 @@
 
 # ⚙️ Formação DevOps — Labs & Notes
 
-**Trilha prática de DevOps, Infrastructure as Code, CI/CD, automação e observabilidade.**
+**Trilha prática de DevOps, Infrastructure as Code, CI/CD, containers, automação e observabilidade.**
 
 ![Status](https://img.shields.io/badge/status-em%20evolução-2ea44f?style=flat-square)
 ![Terraform](https://img.shields.io/badge/Terraform-IaC-844FBA?style=flat-square&logo=terraform&logoColor=white)
+![Docker](https://img.shields.io/badge/Docker-containers-2496ED?style=flat-square&logo=docker&logoColor=white)
 ![CI/CD](https://img.shields.io/badge/CI%2FCD-pipelines-2088FF?style=flat-square&logo=githubactions&logoColor=white)
 ![Docs](https://img.shields.io/badge/docs-práticas-0A66C2?style=flat-square)
 
@@ -15,7 +16,7 @@
 
 ## 🎯 Objetivo
 
-Este repositório documenta minha evolução em **DevOps aplicado à infraestrutura**, organizando teoria, exemplos e próximos laboratórios em uma trilha progressiva.
+Este repositório documenta minha evolução em **DevOps aplicado à infraestrutura**, organizando teoria, exemplos e laboratórios em uma trilha progressiva.
 
 A proposta não é apenas guardar anotações. Cada etapa deve evoluir para **documentação reutilizável + laboratório prático + evidência técnica**.
 
@@ -56,18 +57,14 @@ DevSecOps
 
 ---
 
-## 🧪 Laboratórios
+## 🧪 Laboratórios disponíveis
 
-A área [`labs/`](labs/README.md) será usada para transformar os conceitos da trilha em implementações reproduzíveis.
+| Lab | Foco | Evidência prática |
+|---|---|---|
+| [`01-terraform-basics`](labs/01-terraform-basics/) | Terraform local | `init`, `fmt`, `validate`, `plan`, `apply`, outputs e destroy |
+| [`02-docker-app`](labs/02-docker-app/) | Containers | Dockerfile, build, healthcheck, usuário não-root e Compose básico |
 
-Prioridades:
-
-- Terraform com infraestrutura simples e segura para estudo;
-- aplicação containerizada com Docker;
-- pipeline de validação com GitHub Actions;
-- integração entre IaC e CI/CD;
-- observabilidade e health checks;
-- controles de segurança no pipeline.
+➡️ [Ver roadmap completo dos labs](labs/README.md)
 
 > Nenhum laboratório deve conter credenciais, tokens, chaves privadas ou dados reais de ambientes corporativos.
 
@@ -90,7 +87,9 @@ Formacao_Devops/
 │   ├── 07-ci-cd.md
 │   └── 08-primeiro-pipeline.md
 └── labs/
-    └── README.md
+    ├── README.md
+    ├── 01-terraform-basics/
+    └── 02-docker-app/
 ```
 
 ---
@@ -112,7 +111,7 @@ O planejamento completo está em [`ROADMAP.md`](ROADMAP.md).
 
 Próximos blocos técnicos:
 
-`Docker` → `Docker Compose` → `GitHub Actions` → `CI/CD prático` → `Observabilidade` → `DevSecOps`
+`Docker Compose multi-serviço` → `GitHub Actions` → `CI/CD prático` → `Observabilidade` → `DevSecOps`
 
 ---
 
